@@ -11,5 +11,8 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// ... e só depois você "monta" o aplicativo na tela.
-app.mount('#app')
+// ... e só depois que as rotas e checagens (beforeEach) 
+// terminarem, você "monta" o aplicativo na tela.
+router.isReady().then(() => {
+  app.mount('#app')
+})
