@@ -76,7 +76,16 @@ router.beforeEach(async (to) => {
   }
 
   if (requiresAuth && session) {
-    if (!authStore.profile) await authStore.fetchProfile(session.user)
+    if (!authStore.profile) {
+      await authStore.fetchProfile(session.user)
+      
+      // Se o perfil continuou nulo após tentar buscar no banco (erro ou cache ruim),
+      // a sessão está inválida. Limpa e manda pro Login.
+      if (!authStore.profile) {
+        await authStore.logout()
+        return { name: 'Login' }
+      }
+    }
 
     const permissaoNecessaria = to.meta?.permissao
     if (permissaoNecessaria && !authStore.temPermissao(permissaoNecessaria)) {
