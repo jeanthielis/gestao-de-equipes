@@ -1,0 +1,19 @@
+{
+  "name": "SafeTrack - Gestão Industrial",
+  "short_name": "SafeTrack",
+  "description": "Sistema de apontamentos e DDS para chão de fábrica.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
