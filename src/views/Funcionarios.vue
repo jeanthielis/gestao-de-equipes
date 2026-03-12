@@ -42,7 +42,7 @@
           <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Unidade</label>
             <select v-model="novo.unidade_id" @change="novo.setor_id = ''; novo.equipe_id = ''" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
-              <option value="" disabled>Selecione a unidade...</option>
+              <option value="" disabled>{{ unidades.length === 0 ? 'Nenhuma unidade cadastrada' : 'Selecione a unidade...' }}</option>
               <option v-for="u in unidades" :key="u.id" :value="u.id">{{ u.nome }}</option>
             </select>
           </div>
@@ -50,7 +50,7 @@
           <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Setor</label>
             <select v-model="novo.setor_id" @change="novo.equipe_id = ''" :disabled="!novo.unidade_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white disabled:opacity-50">
-              <option value="" disabled>Selecione o setor...</option>
+              <option value="" disabled>{{ !novo.unidade_id ? 'Primeiro selecione a unidade' : 'Selecione o setor...' }}</option>
               <option v-for="s in setoresDaUnidade" :key="s.id" :value="s.id">{{ s.nome }}</option>
             </select>
           </div>
@@ -58,7 +58,7 @@
           <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Equipe / Turno</label>
             <select v-model="novo.equipe_id" :disabled="!novo.setor_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white disabled:opacity-50">
-              <option value="" disabled>Selecione a equipe...</option>
+              <option value="" disabled>{{ !novo.setor_id ? 'Primeiro selecione o setor' : 'Selecione a equipe...' }}</option>
               <option v-for="e in equipesDoSetor" :key="e.id" :value="e.id">{{ e.nome }}</option>
             </select>
           </div>
@@ -100,7 +100,7 @@
                 <td class="p-4">
                   <span class="block text-slate-700 font-bold text-xs">{{ func.equipes?.nome || 'Sem equipe' }}</span>
                   <span class="block text-[10px] text-slate-400 uppercase mt-0.5">
-                    {{ func.equipes?.setores?.unidades?.nome }} <i class="fa-solid fa-angle-right mx-0.5"></i> {{ func.equipes?.setores?.nome }}
+                    {{ func.equipes?.setores?.unidades?.nome || '—' }} <i class="fa-solid fa-angle-right mx-0.5"></i> {{ func.equipes?.setores?.nome || '—' }}
                   </span>
                 </td>
                 <td class="p-4 text-center">
@@ -164,10 +164,11 @@ const funcionariosFiltrados = computed(() => {
   )
 })
 
-// === CARREGAMENTO DE DADOS ===
+// === CARREGAMENTO DE DADOS COM DIAGNÓSTICO DE ERRO ===
 const fetchData = async () => {
+  loading.value = true
+
   const [resF, resU, resS, resE] = await Promise.all([
-    // Traz o funcionário + o caminho completo da hierarquia dele
     supabase.from('funcionarios').select(`
       *,
       equipes (
@@ -183,10 +184,18 @@ const fetchData = async () => {
     supabase.from('equipes').select('*').order('nome')
   ])
 
+  // Se houver erro de cache ou RLS, a tela vai avisar imediatamente:
+  if (resF.error) toast.fire({ icon: 'error', title: 'Erro nos Funcionários', text: resF.error.message })
+  if (resU.error) toast.fire({ icon: 'error', title: 'Erro nas Unidades', text: resU.error.message })
+  if (resS.error) toast.fire({ icon: 'error', title: 'Erro nos Setores', text: resS.error.message })
+  if (resE.error) toast.fire({ icon: 'error', title: 'Erro nas Equipes', text: resE.error.message })
+
   if (resF.data) funcionarios.value = resF.data
   if (resU.data) unidades.value = resU.data
   if (resS.data) setores.value = resS.data
   if (resE.data) equipes.value = resE.data
+
+  loading.value = false
 }
 
 // === SALVAR ===
@@ -194,13 +203,12 @@ const salvarFuncionario = async () => {
   if (!novo.value.nome || !novo.value.equipe_id) return
   loading.value = true
 
-  // Captura o ID do gestor que está realizando o cadastro
   const { data: authData } = await supabase.auth.getUser()
   const usuarioLogadoId = authData?.user?.id
 
   const dadosParaSalvar = {
     nome: novo.value.nome,
-    equipe_id: novo.value.equipe_id, // O banco já sabe que equipe pertence a qual setor/unidade
+    equipe_id: novo.value.equipe_id,
     matricula: novo.value.matricula ? novo.value.matricula : null,
     funcao: novo.value.cargo ? novo.value.cargo : 'Operador',
     cargo: novo.value.cargo ? novo.value.cargo : 'Operador',
@@ -211,7 +219,6 @@ const salvarFuncionario = async () => {
   
   if (!error) {
     toast.fire({ icon: 'success', title: 'Operador cadastrado com sucesso!' })
-    // Reseta o formulário
     novo.value = { nome: '', matricula: '', cargo: 'Operador', unidade_id: '', setor_id: '', equipe_id: '' }
     await fetchData()
   } else {
@@ -238,7 +245,6 @@ const toggleStatus = async (func) => {
 
   if (confirmacao.isConfirmed) {
     const { error } = await supabase.from('funcionarios').update({ ativo: !func.ativo }).eq('id', func.id)
-    
     if (!error) {
       toast.fire({ icon: 'success', title: `Status atualizado!` })
       await fetchData()
