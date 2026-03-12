@@ -1,119 +1,205 @@
 <template>
-  <div class="animate-fade-in space-y-8">
-    <div>
-      <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Estrutura Operacional</h2>
-      <p class="text-slate-500 mt-1">Gerencie as unidades, setores da fábrica e os turnos (equipes).</p>
+  <div class="animate-fade-in max-w-6xl mx-auto space-y-6 pb-20">
+
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="text-2xl font-black text-slate-900">Estrutura Operacional</h2>
+          <p class="text-slate-500 text-sm mt-1">Gerencie as unidades, setores da fábrica e os turnos (equipes).</p>
+        </div>
+        <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+          <button @click="abaAtiva = 'unidades'" 
+            :class="abaAtiva === 'unidades' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" 
+            class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex items-center justify-center">
+            <i class="fa-solid fa-industry mr-2"></i>Unidades
+          </button>
+          <button @click="abaAtiva = 'setores'" 
+            :class="abaAtiva === 'setores' ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" 
+            class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex items-center justify-center">
+            <i class="fa-solid fa-layer-group mr-2"></i>Setores
+          </button>
+          <button @click="abaAtiva = 'equipes'" 
+            :class="abaAtiva === 'equipes' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'" 
+            class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex items-center justify-center">
+            <i class="fa-solid fa-people-group mr-2"></i>Equipes
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <div class="space-y-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 transition-all hover:shadow-md">
-          <h3 class="font-bold text-slate-800 mb-4 flex items-center">
+      <template v-if="abaAtiva === 'unidades'">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
+          <h3 class="font-bold text-slate-800 mb-5 flex items-center">
             <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mr-3">
               <i class="fa-solid fa-industry"></i>
             </div>
             Nova Unidade
           </h3>
-          <form @submit.prevent="salvarUnidade" class="flex flex-col gap-3">
-            <input v-model="novaUnidade.nome" type="text" required placeholder="Ex: Fábrica Matriz" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
-            <button type="submit" :disabled="loadingUnidade" class="bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-slate-800 transition-all disabled:opacity-50">
-              <i v-if="loadingUnidade" class="fa-solid fa-circle-notch fa-spin mr-1"></i> Criar Unidade
+          <form @submit.prevent="salvarUnidade" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nome da Unidade</label>
+              <input v-model="novaUnidade.nome" type="text" required placeholder="Ex: Fábrica Matriz" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+            </div>
+            <button type="submit" :disabled="loadingUnidade" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 mt-2 flex justify-center items-center shadow-sm">
+              <i v-if="loadingUnidade" class="fa-solid fa-circle-notch fa-spin mr-2"></i>
+              {{ loadingUnidade ? 'Salvando...' : 'Criar Unidade' }}
             </button>
           </form>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 font-bold text-slate-600 text-sm">
-            Unidades ({{ unidades.length }})
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 px-5 py-4 border-b border-slate-200 font-bold text-slate-600 text-sm flex justify-between items-center">
+            <span>Unidades Cadastradas</span>
+            <span class="bg-indigo-100 text-indigo-700 py-1 px-2.5 rounded-lg text-xs">{{ unidades.length }} registro(s)</span>
           </div>
-          <ul class="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
-            <li v-if="unidades.length === 0" class="p-6 text-center text-slate-400 text-sm">Nenhuma unidade.</li>
-            <li v-for="u in unidades" :key="u.id" class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-              <span class="font-semibold text-slate-700">{{ u.nome }}</span>
-              <button @click="deletarUnidade(u)" class="text-slate-300 hover:text-rose-500 transition-colors" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>
-            </li>
-          </ul>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <tbody class="divide-y divide-slate-100 text-sm">
+                <tr v-if="unidades.length === 0">
+                  <td class="p-8 text-center text-slate-400">Nenhuma unidade cadastrada.</td>
+                </tr>
+                <tr v-for="u in unidades" :key="u.id" class="hover:bg-slate-50 transition-colors group">
+                  <td class="p-5 font-semibold text-slate-700">{{ u.nome }}</td>
+                  <td class="p-5 text-right">
+                    <button @click="deletarUnidade(u)" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors sm:opacity-0 group-hover:opacity-100" title="Excluir">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </template>
 
-      <div class="space-y-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 transition-all hover:shadow-md">
-          <h3 class="font-bold text-slate-800 mb-4 flex items-center">
+      <template v-if="abaAtiva === 'setores'">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
+          <h3 class="font-bold text-slate-800 mb-5 flex items-center">
             <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mr-3">
               <i class="fa-solid fa-layer-group"></i>
             </div>
             Novo Setor
           </h3>
           <form @submit.prevent="salvarSetor" class="space-y-4">
-            <select v-model="novoSetor.unidade_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white outline-none focus:ring-2 focus:ring-amber-500">
-              <option value="" disabled>Selecione a unidade...</option>
-              <option v-for="u in unidades" :key="u.id" :value="u.id">{{ u.nome }}</option>
-            </select>
-            <input v-model="novoSetor.nome" type="text" required placeholder="Ex: Preparação de Massa" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm" />
-            <button type="submit" :disabled="loadingSetor || !novoSetor.unidade_id" class="w-full bg-amber-500 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-amber-600 transition-all disabled:opacity-50">
-              <i v-if="loadingSetor" class="fa-solid fa-circle-notch fa-spin mr-1"></i> Criar Setor
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Unidade Física</label>
+              <select v-model="novoSetor.unidade_id" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-amber-500 text-sm">
+                <option value="" disabled>Selecione a unidade...</option>
+                <option v-for="u in unidades" :key="u.id" :value="u.id">{{ u.nome }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nome do Setor</label>
+              <input v-model="novoSetor.nome" type="text" required placeholder="Ex: Preparação de Massa" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm" />
+            </div>
+            <button type="submit" :disabled="loadingSetor || !novoSetor.unidade_id" class="w-full bg-amber-500 text-white font-bold py-3 rounded-xl hover:bg-amber-600 transition-all disabled:opacity-50 mt-2 flex justify-center items-center shadow-sm">
+              <i v-if="loadingSetor" class="fa-solid fa-circle-notch fa-spin mr-2"></i>
+              {{ loadingSetor ? 'Salvando...' : 'Criar Setor' }}
             </button>
           </form>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 font-bold text-slate-600 text-sm">
-            Setores ({{ setores.length }})
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 px-5 py-4 border-b border-slate-200 font-bold text-slate-600 text-sm flex justify-between items-center">
+            <span>Setores Cadastrados</span>
+            <span class="bg-amber-100 text-amber-700 py-1 px-2.5 rounded-lg text-xs">{{ setores.length }} registro(s)</span>
           </div>
-          <ul class="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
-            <li v-if="setores.length === 0" class="p-6 text-center text-slate-400 text-sm">Nenhum setor.</li>
-            <li v-for="s in setores" :key="s.id" class="p-4 flex flex-col hover:bg-slate-50 transition-colors group">
-              <div class="flex justify-between items-start">
-                <div>
-                  <p class="font-bold text-slate-800">{{ s.nome }}</p>
-                  <p class="text-[10px] text-slate-500 uppercase mt-0.5">{{ s.unidades?.nome }}</p>
-                </div>
-                <button @click="deletarSetor(s)" class="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>
-              </div>
-            </li>
-          </ul>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-white text-[10px] uppercase tracking-widest font-black text-slate-400 border-b border-slate-100">
+                <tr>
+                  <th class="px-5 py-3">Setor</th>
+                  <th class="px-4 py-3">Unidade Vinculada</th>
+                  <th class="px-4 py-3 text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-sm">
+                <tr v-if="setores.length === 0">
+                  <td colspan="3" class="p-8 text-center text-slate-400">Nenhum setor cadastrado.</td>
+                </tr>
+                <tr v-for="s in setores" :key="s.id" class="hover:bg-slate-50 transition-colors group">
+                  <td class="px-5 py-4 font-semibold text-slate-700">{{ s.nome }}</td>
+                  <td class="px-4 py-4 text-slate-500 text-xs">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 font-medium">
+                      <i class="fa-solid fa-industry opacity-50"></i> {{ s.unidades?.nome }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-4 text-right">
+                    <button @click="deletarSetor(s)" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors sm:opacity-0 group-hover:opacity-100" title="Excluir">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </template>
 
-      <div class="space-y-6">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 transition-all hover:shadow-md">
-          <h3 class="font-bold text-slate-800 mb-4 flex items-center">
+      <template v-if="abaAtiva === 'equipes'">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
+          <h3 class="font-bold text-slate-800 mb-5 flex items-center">
             <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3">
               <i class="fa-solid fa-people-group"></i>
             </div>
             Nova Equipe / Turno
           </h3>
           <form @submit.prevent="salvarEquipe" class="space-y-4">
-            <select v-model="novaEquipe.setor_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="" disabled>Selecione o setor...</option>
-              <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }} ({{ s.unidades?.nome }})</option>
-            </select>
-            <input v-model="novaEquipe.nome" type="text" required placeholder="Ex: Turma A - Manhã" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
-            <button type="submit" :disabled="loadingEquipe || !novaEquipe.setor_id" class="w-full bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-50">
-              <i v-if="loadingEquipe" class="fa-solid fa-circle-notch fa-spin mr-1"></i> Vincular Equipe
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Setor</label>
+              <select v-model="novaEquipe.setor_id" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                <option value="" disabled>Selecione o setor...</option>
+                <option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }} ({{ s.unidades?.nome }})</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nome da Equipe</label>
+              <input v-model="novaEquipe.nome" type="text" required placeholder="Ex: Turma A - Manhã" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+            </div>
+            <button type="submit" :disabled="loadingEquipe || !novaEquipe.setor_id" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-50 mt-2 flex justify-center items-center shadow-sm">
+              <i v-if="loadingEquipe" class="fa-solid fa-circle-notch fa-spin mr-2"></i>
+              {{ loadingEquipe ? 'Salvando...' : 'Vincular Equipe' }}
             </button>
           </form>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="bg-slate-50 px-5 py-3 border-b border-slate-200 font-bold text-slate-600 text-sm">
-            Equipes ({{ equipes.length }})
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 px-5 py-4 border-b border-slate-200 font-bold text-slate-600 text-sm flex justify-between items-center">
+            <span>Equipes Cadastradas</span>
+            <span class="bg-emerald-100 text-emerald-700 py-1 px-2.5 rounded-lg text-xs">{{ equipes.length }} registro(s)</span>
           </div>
-          <ul class="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
-            <li v-if="equipes.length === 0" class="p-6 text-center text-slate-400 text-sm">Nenhuma equipe.</li>
-            <li v-for="eq in equipes" :key="eq.id" class="p-4 flex flex-col hover:bg-slate-50 transition-colors group">
-              <div class="flex justify-between items-start">
-                <div>
-                  <p class="font-bold text-slate-800">{{ eq.nome }}</p>
-                  <p class="text-[10px] text-slate-500 uppercase mt-0.5">{{ eq.setores?.nome }}</p>
-                </div>
-                <button @click="deletarEquipe(eq)" class="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>
-              </div>
-            </li>
-          </ul>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead class="bg-white text-[10px] uppercase tracking-widest font-black text-slate-400 border-b border-slate-100">
+                <tr>
+                  <th class="px-5 py-3">Equipe / Turno</th>
+                  <th class="px-4 py-3">Setor Vinculado</th>
+                  <th class="px-4 py-3 text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-sm">
+                <tr v-if="equipes.length === 0">
+                  <td colspan="3" class="p-8 text-center text-slate-400">Nenhuma equipe cadastrada.</td>
+                </tr>
+                <tr v-for="eq in equipes" :key="eq.id" class="hover:bg-slate-50 transition-colors group">
+                  <td class="px-5 py-4 font-semibold text-slate-700">{{ eq.nome }}</td>
+                  <td class="px-4 py-4 text-slate-500 text-xs">
+                    <span class="block text-slate-700 font-medium">{{ eq.setores?.nome }}</span>
+                    <span class="block text-[10px] uppercase mt-0.5 opacity-60"><i class="fa-solid fa-industry mr-1"></i> {{ eq.setores?.unidades?.nome }}</span>
+                  </td>
+                  <td class="px-4 py-4 text-right">
+                    <button @click="deletarEquipe(eq)" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-colors sm:opacity-0 group-hover:opacity-100" title="Excluir">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </template>
 
     </div>
   </div>
@@ -123,6 +209,9 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { toast, confirmar, traduzirErro } from '../lib/alerts'
+
+// Controle das Abas
+const abaAtiva = ref('unidades')
 
 const unidades = ref([])
 const setores = ref([])
