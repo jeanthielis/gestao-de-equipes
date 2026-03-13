@@ -307,7 +307,7 @@ const handleTrocarSenha = async () => {
     toast.fire({ icon: 'success', title: 'Senha definida!', text: 'Bem-vindo ao SafeTrack.' })
     router.push('/dashboard')
   } catch (err) {
-    errorMessage.value = traduzirErro(err)
+    errorMessage.value = err
   } finally {
     loading.value = false
   }
