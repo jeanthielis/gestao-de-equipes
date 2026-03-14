@@ -176,31 +176,34 @@ const carregar = async () => {
     const agruparPor = dias <= 14 ? 'dia' : 'semana'
     const grupos = {}
 
-    // Gera os buckets
+    // Mapa de data ISO (YYYY-MM-DD) → chave do bucket — evita cálculos negativos
+    const dataParaChave = (dateObj) => {
+      if (agruparPor === 'dia') {
+        return dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      }
+      const diffMs = Date.now() - dateObj.getTime()
+      const diffDias = Math.floor(diffMs / 86400000)
+      const semana = Math.min(Math.floor(diffDias / 7) + 1, Math.ceil(dias / 7))
+      return `Sem ${semana}`
+    }
+
+    // Gera os buckets na ordem cronológica correta
     for (let i = dias - 1; i >= 0; i--) {
       const d = new Date()
       d.setDate(d.getDate() - i)
-      const chave = agruparPor === 'dia'
-        ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        : `Sem ${Math.ceil((dias - i) / 7)}`
+      const chave = dataParaChave(d)
       if (!grupos[chave]) grupos[chave] = { C: 0, CP: 0, NC: 0, dds: 0 }
     }
 
     // Distribui avaliações
     ;(avaliacoes || []).forEach((a) => {
-      const d = new Date(a.created_at)
-      const chave = agruparPor === 'dia'
-        ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        : `Sem ${Math.ceil((dias - Math.floor((Date.now() - d.getTime()) / 86400000)) / 7)}`
+      const chave = dataParaChave(new Date(a.created_at))
       if (grupos[chave]) grupos[chave][a.status]++
     })
 
     // Distribui DDS
     ;(ddsAplicados || []).forEach((d) => {
-      const dt = new Date(d.data_aplicacao)
-      const chave = agruparPor === 'dia'
-        ? dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        : `Sem ${Math.ceil((dias - Math.floor((Date.now() - dt.getTime()) / 86400000)) / 7)}`
+      const chave = dataParaChave(new Date(d.data_aplicacao))
       if (grupos[chave]) grupos[chave].dds++
     })
 

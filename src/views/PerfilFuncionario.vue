@@ -163,6 +163,7 @@
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import { toast, traduzirErro } from '../lib/alerts'
+import { badgeClass, iconeStatus, getCorBarra, getCorTexto, formatarData } from '../lib/utils'
 
 const matriculaBusca = ref('')
 const funcionario = ref(null)
@@ -246,18 +247,4 @@ const buscarFuncionario = async () => {
   }
 }
 
-const formatarData = (iso) => {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-const badgeClass = (s) => {
-  if (s === 'C')  return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-  if (s === 'CP') return 'bg-amber-100 text-amber-700 border-amber-200'
-  if (s === 'NC') return 'bg-rose-100 text-rose-700 border-rose-200'
-  return 'bg-slate-100 text-slate-500 border-slate-200'
-}
-const iconeStatus = (s) => s === 'C' ? 'fa-check' : s === 'CP' ? 'fa-minus' : 'fa-xmark'
-const getCorBarra = (p) => p >= 90 ? 'bg-emerald-500' : p >= 60 ? 'bg-amber-400' : 'bg-rose-500'
-const getCorTexto = (p) => p >= 90 ? 'text-emerald-400' : p >= 60 ? 'text-amber-400' : 'text-rose-400'
 </script>

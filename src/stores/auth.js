@@ -7,7 +7,8 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     profile: null,
     loading: true,
-    error: null
+    error: null,
+    fetchingProfile: false
   }),
 
   getters: {
@@ -21,12 +22,15 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async fetchProfile(sessionUser) {
+      if (this.fetchingProfile) return
+      this.fetchingProfile = true
       this.user = sessionUser
       this.error = null
 
       if (!sessionUser) {
         this.profile = null
         this.loading = false
+        this.fetchingProfile = false
         return
       }
 
@@ -61,6 +65,7 @@ export const useAuthStore = defineStore('auth', {
         this.profile = null
       } finally {
         this.loading = false
+        this.fetchingProfile = false
       }
     },
 
@@ -73,6 +78,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = null
         this.profile = null
         this.error = null
+        this.fetchingProfile = false
       }
     },
 
@@ -81,6 +87,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.profile = null
       this.loading = false
+      this.fetchingProfile = false
     }
   }
 })

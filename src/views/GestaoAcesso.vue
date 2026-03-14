@@ -123,7 +123,7 @@ const equipes = ref([])
 
 const modalAberto = ref(false)
 const salvando = ref(false)
-const dominio = '@safetrack.com.br'
+const dominio = import.meta.env.VITE_EMAIL_DOMAIN || '@safetrack.com.br'
 
 const form = ref({ nome: '', loginGerado: '', senha: '', unidadeId: '', setorId: '', equipeId: '' })
 

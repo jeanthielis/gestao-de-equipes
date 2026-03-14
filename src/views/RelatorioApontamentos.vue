@@ -274,6 +274,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { toast, traduzirErro } from '../lib/alerts'
+import { badgeClass, iconeStatus, getCorBarra, getCorTexto } from '../lib/utils'
 
 // ── Estado ──────────────────────────────────────────────────────────────────
 const execucoes = ref([])
@@ -424,33 +425,6 @@ const getConformidadeFuncionario = (exec, funcId) => {
   return Math.round((conformes / avals.length) * 100)
 }
 
-// ── Helpers de UI ────────────────────────────────────────────────────────────
-const badgeClass = (status) => {
-  if (status === 'C')  return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-  if (status === 'CP') return 'bg-amber-100 text-amber-700 border-amber-200'
-  if (status === 'NC') return 'bg-rose-100 text-rose-700 border-rose-200'
-  return 'bg-slate-100 text-slate-500 border-slate-200'
-}
-
-const iconeStatus = (status) => {
-  if (status === 'C')  return 'fa-check'
-  if (status === 'CP') return 'fa-minus'
-  if (status === 'NC') return 'fa-xmark'
-  return 'fa-circle'
-}
-
-const getCorBarra = (pct) => {
-  if (pct >= 90) return 'bg-emerald-500'
-  if (pct >= 60) return 'bg-amber-400'
-  return 'bg-rose-500'
-}
-
-const getCorTexto = (pct) => {
-  if (pct >= 90) return 'text-emerald-600'
-  if (pct >= 60) return 'text-amber-500'
-  return 'text-rose-600'
-}
-
 const formatarDataCompleta = (iso) => {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR', {
@@ -462,7 +436,6 @@ const formatarDataCompleta = (iso) => {
     minute: '2-digit'
   })
 }
-
 
 const exportarCSV = () => {
   const linhas = [['Data Execucao', 'Responsavel', 'Funcionario', 'Matricula', 'Criterio', 'Status', 'Justificativa']]

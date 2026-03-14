@@ -124,8 +124,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
-// IMPORTAÇÃO DOS ALERTAS MÁGICOS AQUI:
-import { toast, alerta } from '../lib/alerts' 
+import { toast, alerta } from '../lib/alerts'
 
 const listasSalvas = ref([])
 const listaAtual = ref([])
@@ -161,7 +160,6 @@ const adicionarPorMatricula = async () => {
   const matriculaLimpa = buscaMatricula.value.trim()
   
   if (listaAtual.value.some(f => f.matricula === matriculaLimpa)) {
-    // AVISO BONITO DE MATRÍCULA DUPLICADA
     toast.fire({ icon: 'info', title: 'Colaborador já está na lista atual.' })
     buscaMatricula.value = ''
     return
@@ -175,7 +173,6 @@ const adicionarPorMatricula = async () => {
     presencas.value[func.id] = true
     buscaMatricula.value = ''
   } else {
-    // ERRO BONITO DE MATRÍCULA
     toast.fire({ icon: 'error', title: 'Matrícula não encontrada!' })
   }
 }
@@ -191,7 +188,6 @@ const definirStatus = (funcId, quesitoId, status) => {
 }
 
 const salvarListaAtual = async () => {
-  // SUBSTITUIÇÃO DO PROMPT FEIO PELO SWEETALERT
   const { value: nomeDaLista } = await alerta.fire({
     title: 'Salvar Equipe',
     input: 'text',
@@ -235,7 +231,7 @@ const salvarAvaliacoes = async () => {
     for (const q of quesitos.value) {
       const resp = avaliacoes.value[func.id][q.id]
       if ((resp.status === 'CP' || resp.status === 'NC') && !resp.justificativa.trim()) {
-        // ALERTA DE VALIDAÇÃO
+
         alerta.fire({
           icon: 'warning',
           title: 'Justificativa Obrigatória',
@@ -272,7 +268,7 @@ const salvarAvaliacoes = async () => {
     const { error: errAva } = await supabase.from('diario_avaliacoes').insert(payload)
     if (errAva) throw errAva
 
-    // SUCESSO!
+
     toast.fire({ icon: 'success', title: 'Auditoria registrada com sucesso!' })
     
     listaAtual.value = []

@@ -231,6 +231,9 @@ const fetchData = async () => {
     supabase.from('setores').select('id, nome, unidade_id, unidades(nome)').order('nome'),
     supabase.from('equipes').select('id, nome, setor_id, setores(nome, unidades(nome))').order('nome')
   ])
+  if (resU.error) { toast.fire({ icon: 'error', title: 'Erro ao carregar unidades', text: traduzirErro(resU.error) }); return }
+  if (resS.error) { toast.fire({ icon: 'error', title: 'Erro ao carregar setores', text: traduzirErro(resS.error) }); return }
+  if (resE.error) { toast.fire({ icon: 'error', title: 'Erro ao carregar equipes', text: traduzirErro(resE.error) }); return }
   if (resU.data) unidades.value = resU.data
   if (resS.data) setores.value = resS.data
   if (resE.data) equipes.value = resE.data

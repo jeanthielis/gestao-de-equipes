@@ -28,9 +28,9 @@ const fetchData = async () => {
 const temaSelecionado = computed(() => temas.value.find(t => t.id === form.value.tema_id))
 const assinaturasColetadas = computed(() => Object.keys(assinaturas.value).length)
 
-// =========================================================
-// MUDANÇA PRINCIPAL AQUI: USO DA RPC PARA BUSCA GLOBAL
-// =========================================================
+
+
+
 const adicionarPorMatricula = async () => {
   if (!buscaMatricula.value) return
   const matriculaLimpa = buscaMatricula.value.trim()

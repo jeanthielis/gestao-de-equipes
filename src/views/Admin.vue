@@ -116,7 +116,11 @@ const fetchItens = async () => {
     .select('*')
     .order('created_at', { ascending: false })
   
-  if (!error && data) itens.value = data
+  if (error) {
+    toast.fire({ icon: 'error', title: 'Erro ao carregar critérios', text: traduzirErro(error) })
+    return
+  }
+  if (data) itens.value = data
 }
 
 const adicionarItem = async () => {

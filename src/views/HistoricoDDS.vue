@@ -250,8 +250,6 @@ const fecharDetalhes = () => {
   appSelecionada.value = null
 }
 
-// A Mágica do PDF Acontece Aqui!
-// A Mágica do PDF Acontece Aqui!
 const gerarPDF = () => {
   gerandoPDF.value = true
   

@@ -230,7 +230,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useNotificacoesStore } from '../stores/notificacoes'
 import { useBuscaStore } from '../stores/busca'
@@ -262,9 +262,13 @@ const handleLogout = async () => {
 }
 
 // Verifica alertas automáticos ao montar o layout (com intervalo de 10 min)
+let alertasInterval = null
 onMounted(() => {
   notifStore.verificarAlertas()
-  setInterval(() => notifStore.verificarAlertas(), 10 * 60 * 1000)
+  alertasInterval = setInterval(() => notifStore.verificarAlertas(), 10 * 60 * 1000)
+})
+onUnmounted(() => {
+  clearInterval(alertasInterval)
 })
 </script>
 
