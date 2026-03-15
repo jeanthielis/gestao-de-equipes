@@ -43,7 +43,11 @@
                 {{ funcionario.ativo ? '● Ativo' : '○ Inativo' }}
               </span>
             </div>
-          </div>
+          <button v-if="funcionario" @click="exportarFicha"
+            class="bg-white/10 border border-white/20 px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/20 transition-colors flex items-center gap-2">
+            <i class="fa-solid fa-file-pdf text-rose-400"></i> Exportar Ficha
+          </button>
+        </div>
           <!-- Índice geral de conformidade -->
           <div class="text-center bg-white/10 border border-white/20 rounded-2xl px-6 py-4 shrink-0">
             <p class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Conformidade Geral</p>
@@ -164,6 +168,7 @@ import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import { toast, traduzirErro } from '../lib/alerts'
 import { badgeClass, iconeStatus, getCorBarra, getCorTexto, formatarData } from '../lib/utils'
+import { gerarFichaFuncionarioPDF } from '../lib/relatoriosPDF'
 
 const matriculaBusca = ref('')
 const funcionario = ref(null)

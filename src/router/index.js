@@ -42,6 +42,7 @@ const routes = [
       // Apontamentos
       { path: 'acompanhamento',          name: 'Acompanhamento',         component: () => import('../views/AcompanhamentoDiario.vue'),   meta: { title: 'Diário de Bordo',               permissao: 'diario_bordo' } },
       { path: 'relatorio-apontamentos',  name: 'RelatorioApontamentos',  component: () => import('../views/RelatorioApontamentos.vue'),  meta: { title: 'Relatório de Apontamentos',     permissao: 'relatorio_apontos' } },
+      { path: 'relatorio-avancado',       name: 'RelatorioAvancado',      component: () => import('../views/RelatorioAvancado.vue'),      meta: { title: 'Relatórios Avançados',          permissao: 'relatorio_avancado' } },
       { path: 'perfil-funcionario',      name: 'PerfilFuncionario',      component: () => import('../views/PerfilFuncionario.vue'),      meta: { title: 'Perfil do Funcionário',         permissao: 'perfil_funcionario' } },
       { path: 'acoes-corretivas',        name: 'AcoesCorretivas',        component: () => import('../views/AcoesCorretivas.vue'),        meta: { title: 'Ações Corretivas',              permissao: 'acoes_corretivas' } },
 

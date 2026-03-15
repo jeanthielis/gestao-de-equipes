@@ -30,7 +30,7 @@
     <!-- Tabela -->
     <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
+        <table class="w-full text-left text-sm min-w-[640px]">
           <thead>
             <tr class="text-[10px] uppercase tracking-widest text-slate-400 font-black border-b border-slate-100 bg-slate-50">
               <th class="px-6 py-3">Data/Hora</th>

@@ -44,6 +44,9 @@ export const useNotificacoesStore = defineStore('notificacoes', {
     // Verifica condições que devem gerar alertas automáticos
     async verificarAlertas() {
       if (this.loading) return
+      // Respeita o intervalo de 10 min mesmo se chamado múltiplas vezes
+      const DEZ_MIN = 10 * 60 * 1000
+      if (this.ultimaVerificacao && Date.now() - new Date(this.ultimaVerificacao).getTime() < DEZ_MIN) return
       this.loading = true
 
       try {

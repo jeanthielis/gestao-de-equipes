@@ -17,6 +17,10 @@
         <button @click="carregarNCs" :disabled="carregando" class="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
           <i class="fa-solid fa-arrows-rotate text-sm" :class="{ 'fa-spin': carregando }"></i>
         </button>
+        <button @click="exportarPDF" :disabled="carregando || ncs.length === 0"
+          class="px-4 py-2.5 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-colors shadow-sm text-sm flex items-center gap-2 disabled:opacity-50">
+          <i class="fa-solid fa-file-pdf"></i> PDF
+        </button>
       </div>
     </div>
 
@@ -147,6 +151,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { toast, traduzirErro } from '../lib/alerts'
+import { gerarAcoesCorretivasPDF } from '../lib/relatoriosPDF'
 import { registrarLog } from '../lib/auditoria'
 
 const ncs = ref([])
@@ -232,6 +237,10 @@ const salvarStatusAcao = async (nc) => {
 }
 
 const formatarData = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—'
+
+const exportarPDF = async () => {
+  await gerarAcoesCorretivasPDF({ ncs: ncs.value })
+}
 
 onMounted(carregarNCs)
 </script>

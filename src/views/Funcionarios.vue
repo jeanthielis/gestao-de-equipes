@@ -70,7 +70,7 @@
         </form>
       </div>
 
-      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-w-0">
         <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
           <div class="relative w-full max-w-sm">
             <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -78,8 +78,8 @@
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse whitespace-nowrap">
+        <div class="overflow-x-auto -mx-0">
+          <table class="w-full text-left border-collapse min-w-[500px]">
             <thead>
               <tr class="bg-white text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
                 <th class="p-4 font-bold">Colaborador</th>
@@ -127,6 +127,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useDadosStore } from '../stores/dados'
 import { toast, alerta, traduzirErro } from '../lib/alerts'
 
 const funcionarios = ref([])
@@ -136,6 +137,7 @@ const equipes = ref([])
 
 const loading = ref(false)
 const termoBusca = ref('')
+const dadosStore = useDadosStore()
 
 const novo = ref({
   nome: '',
@@ -167,35 +169,31 @@ const funcionariosFiltrados = computed(() => {
 // === CARREGAMENTO DE DADOS COM DIAGNÓSTICO DE ERRO ===
 const fetchData = async () => {
   loading.value = true
-
-  const [resF, resU, resS, resE] = await Promise.all([
-    supabase.from('funcionarios').select(`
-      *,
-      equipes (
-        nome,
-        setores (
+  try {
+    // Dados de referência vêm do cache (banco só consultado se expirado)
+    const [resF, u, s, e] = await Promise.all([
+      supabase.from('funcionarios').select(`
+        *,
+        equipes (
           nome,
-          unidades (nome)
+          setores (
+            nome,
+            unidades (nome)
+          )
         )
-      )
-    `).order('nome'),
-    supabase.from('unidades').select('*').order('nome'),
-    supabase.from('setores').select('*').order('nome'),
-    supabase.from('equipes').select('*').order('nome')
-  ])
-
-  // Se houver erro de cache ou RLS, a tela vai avisar imediatamente:
-  if (resF.error) toast.fire({ icon: 'error', title: 'Erro nos Funcionários', text: resF.error.message })
-  if (resU.error) toast.fire({ icon: 'error', title: 'Erro nas Unidades', text: resU.error.message })
-  if (resS.error) toast.fire({ icon: 'error', title: 'Erro nos Setores', text: resS.error.message })
-  if (resE.error) toast.fire({ icon: 'error', title: 'Erro nas Equipes', text: resE.error.message })
-
-  if (resF.data) funcionarios.value = resF.data
-  if (resU.data) unidades.value = resU.data
-  if (resS.data) setores.value = resS.data
-  if (resE.data) equipes.value = resE.data
-
-  loading.value = false
+      `).order('nome'),
+      dadosStore.getUnidades(),
+      dadosStore.getSetores(),
+      dadosStore.getEquipesSimples(),
+    ])
+    if (resF.error) toast.fire({ icon: 'error', title: 'Erro nos Funcionários', text: resF.error.message })
+    if (resF.data) funcionarios.value = resF.data
+    unidades.value = u
+    setores.value  = s
+    equipes.value  = e
+  } finally {
+    loading.value = false
+  }
 }
 
 // === SALVAR ===
@@ -220,7 +218,7 @@ const salvarFuncionario = async () => {
   if (!error) {
     toast.fire({ icon: 'success', title: 'Operador cadastrado com sucesso!' })
     novo.value = { nome: '', matricula: '', cargo: 'Operador', unidade_id: '', setor_id: '', equipe_id: '' }
-    await fetchData()
+    await fetchData() // só recarrega funcionarios; estrutura vem do cache
   } else {
     toast.fire({ icon: 'error', title: 'Erro ao cadastrar', text: traduzirErro(error) })
   }

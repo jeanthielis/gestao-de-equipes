@@ -69,11 +69,11 @@
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-3 mt-4">
+      <div class="flex flex-wrap gap-2 mt-4">
         <button
           @click="buscar"
           :disabled="loading"
-          class="flex-1 sm:flex-none bg-indigo-600 text-white font-bold px-8 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+          class="flex-none bg-indigo-600 text-white font-bold px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
         >
           <i v-if="loading" class="fa-solid fa-circle-notch fa-spin"></i>
           <i v-else class="fa-solid fa-magnifying-glass"></i>
@@ -81,15 +81,20 @@
         </button>
         <button
           @click="limparFiltros"
-          class="flex-1 sm:flex-none bg-slate-100 text-slate-600 font-bold px-6 py-2.5 rounded-xl hover:bg-slate-200 transition-colors"
+          class="flex-none bg-slate-100 text-slate-600 font-bold px-5 py-2.5 rounded-xl hover:bg-slate-200 transition-colors"
         >
           <i class="fa-solid fa-xmark mr-2"></i>Limpar
         </button>
         <button
           v-if="execucoes.length > 0"
           @click="exportarCSV"
-          class="flex-1 sm:flex-none bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center justify-center gap-2">
+          class="flex-none bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm flex items-center justify-center gap-2">
           <i class="fa-solid fa-file-csv"></i>CSV
+        </button>
+        <button
+          @click="exportarPDF"
+          class="flex-1 sm:flex-none bg-rose-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-rose-700 transition-colors shadow-sm flex items-center justify-center gap-2">
+          <i class="fa-solid fa-file-pdf"></i>PDF
         </button>
       </div>
     </div>
@@ -217,7 +222,7 @@
 
             <!-- Tabela de avaliações do funcionário -->
             <div class="overflow-x-auto">
-              <table class="w-full text-left text-sm">
+              <table class="w-full text-left text-sm min-w-[480px]">
                 <thead>
                   <tr class="bg-slate-50/80 text-[10px] uppercase tracking-widest text-slate-400 font-black">
                     <th class="px-6 py-2">Critério Avaliado</th>
@@ -274,6 +279,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { toast, traduzirErro } from '../lib/alerts'
+import { gerarRelatorioApontamentosPDF } from '../lib/relatoriosPDF'
 import { badgeClass, iconeStatus, getCorBarra, getCorTexto } from '../lib/utils'
 
 // ── Estado ──────────────────────────────────────────────────────────────────
@@ -460,6 +466,18 @@ const exportarCSV = () => {
   a.download = `apontamentos_${new Date().toISOString().split('T')[0]}.csv`
   a.click()
   URL.revokeObjectURL(url)
+}
+
+const exportarPDF = async () => {
+  if (!execucoes.value.length) {
+    toast.fire({ icon: 'warning', title: 'Busque os dados antes de exportar.' })
+    return
+  }
+  await gerarRelatorioApontamentosPDF({
+    execucoes: execucoes.value,
+    filtros: filtros.value,
+    kpis: kpis.value
+  })
 }
 
 onMounted(buscar)

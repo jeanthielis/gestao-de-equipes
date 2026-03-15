@@ -171,13 +171,14 @@ const fetchDashboardData = async () => {
   loading.value = true
 
   const hoje = new Date().toISOString().split('T')[0]
+  const noventaDiasAtras = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 
   try {
     const [{ count: countEq }, { data: ddsHoje }, { data: avaliacoes }, { data: ddsLista }] =
       await Promise.all([
         supabase.from('equipes').select('*', { count: 'exact', head: true }),
         supabase.from('dds_assinaturas').select('id').gte('assinado_em', hoje),
-        supabase.from('diario_avaliacoes').select('status, quesito_id, itens_checklist(descricao)'),
+        supabase.from('diario_avaliacoes').select('status, quesito_id, itens_checklist(descricao)').gte('created_at', noventaDiasAtras),
         supabase
           .from('dds_aplicacoes')
           .select('id, data_aplicacao, dds_temas(titulo), dds_assinaturas(id)')

@@ -100,10 +100,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useDadosStore } from '../stores/dados'
 import { toast, confirmar, traduzirErro } from '../lib/alerts'
 
 const itens = ref([])
 const loading = ref(false)
+const dadosStore = useDadosStore()
 const novoItem = ref({
   descricao: '',
   categoria: 'Qualidade',
@@ -138,6 +140,7 @@ const adicionarItem = async () => {
   if (!error) {
     toast.fire({ icon: 'success', title: 'Critério adicionado com sucesso!' })
     novoItem.value.descricao = ''
+    dadosStore.invalidar('itensChecklist')
     await fetchItens()
   } else {
     toast.fire({ icon: 'error', title: 'Erro ao adicionar', text: traduzirErro(error) })
@@ -153,6 +156,7 @@ const toggleStatus = async (item) => {
   const { error } = await supabase.from('itens_checklist').update({ ativo: !item.ativo }).eq('id', item.id)
   if (!error) {
     toast.fire({ icon: 'success', title: `Critério ${item.ativo ? 'desativado' : 'reativado'}!` })
+    dadosStore.invalidar('itensChecklist')
     await fetchItens()
   } else {
     toast.fire({ icon: 'error', title: 'Erro ao atualizar', text: traduzirErro(error) })

@@ -22,6 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_entidade ON public.audit_logs(entidade
 -- RLS: apenas admins leem; sistema insere
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins podem ler logs" ON public.audit_logs;
 CREATE POLICY "Admins podem ler logs"
   ON public.audit_logs FOR SELECT
   USING (
@@ -32,6 +33,7 @@ CREATE POLICY "Admins podem ler logs"
     )
   );
 
+DROP POLICY IF EXISTS "Sistema pode inserir logs" ON public.audit_logs;
 CREATE POLICY "Sistema pode inserir logs"
   ON public.audit_logs FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
@@ -162,3 +164,86 @@ CREATE POLICY "usuarios_update"
 CREATE POLICY "usuarios_delete"
   ON public.usuarios FOR DELETE
   USING (auth.uid() IS NOT NULL);
+
+
+-- ============================================================
+-- 7. Tabelas de Controle de Acesso: niveis_acesso + permissoes_acesso
+--    Execute se a aba "Cargos" não listar ou criar cargos
+-- ============================================================
+
+-- Tabela de cargos/níveis de acesso
+CREATE TABLE IF NOT EXISTS public.niveis_acesso (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome       text NOT NULL UNIQUE,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Tabela de permissões por nível (cada linha = 1 módulo liberado para 1 nível)
+CREATE TABLE IF NOT EXISTS public.permissoes_acesso (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  nivel_id    uuid NOT NULL REFERENCES public.niveis_acesso(id) ON DELETE CASCADE,
+  modulo_slug text NOT NULL,
+  created_at  timestamptz DEFAULT now(),
+  UNIQUE (nivel_id, modulo_slug)
+);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_permissoes_nivel ON public.permissoes_acesso(nivel_id);
+CREATE INDEX IF NOT EXISTS idx_niveis_nome      ON public.niveis_acesso(nome);
+
+-- RLS: qualquer autenticado pode ler; admins podem escrever
+ALTER TABLE public.niveis_acesso    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.permissoes_acesso ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "niveis_select" ON public.niveis_acesso;
+CREATE POLICY "niveis_select"
+  ON public.niveis_acesso FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "niveis_insert" ON public.niveis_acesso;
+CREATE POLICY "niveis_insert"
+  ON public.niveis_acesso FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "niveis_update" ON public.niveis_acesso;
+CREATE POLICY "niveis_update"
+  ON public.niveis_acesso FOR UPDATE
+  USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "niveis_delete" ON public.niveis_acesso;
+CREATE POLICY "niveis_delete"
+  ON public.niveis_acesso FOR DELETE
+  USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "permissoes_select" ON public.permissoes_acesso;
+CREATE POLICY "permissoes_select"
+  ON public.permissoes_acesso FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "permissoes_insert" ON public.permissoes_acesso;
+CREATE POLICY "permissoes_insert"
+  ON public.permissoes_acesso FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "permissoes_delete" ON public.permissoes_acesso;
+CREATE POLICY "permissoes_delete"
+  ON public.permissoes_acesso FOR DELETE
+  USING (auth.uid() IS NOT NULL);
+
+-- Coluna nivel_id na tabela usuarios (FK para niveis_acesso)
+ALTER TABLE public.usuarios
+  ADD COLUMN IF NOT EXISTS nivel_id uuid REFERENCES public.niveis_acesso(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_nivel ON public.usuarios(nivel_id);
+
+-- Colunas de escopo de visibilidade
+ALTER TABLE public.usuarios
+  ADD COLUMN IF NOT EXISTS nivel_visibilidade     text DEFAULT 'Equipe',
+  ADD COLUMN IF NOT EXISTS unidade_vinculada_id   uuid REFERENCES public.unidades(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS setor_vinculado_id     uuid REFERENCES public.setores(id)  ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS equipe_vinculada_id    uuid REFERENCES public.equipes(id)  ON DELETE SET NULL;
+
+-- Cargo SuperAdmin padrão (execute uma única vez)
+INSERT INTO public.niveis_acesso (nome)
+VALUES ('SuperAdmin')
+ON CONFLICT (nome) DO NOTHING;

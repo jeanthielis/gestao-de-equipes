@@ -95,21 +95,24 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useDadosStore } from '../stores/dados'
 import { toast, confirmar, traduzirErro } from '../lib/alerts'
 
 const categorias = ref([])
 const temas = ref([])
 const filtroAtual = ref(null)
 const loading = ref(false)
+const dadosStore = useDadosStore()
 
 const novoTema = ref({ titulo: '', conteudo: '', categoria_id: '' })
 
 const fetchData = async () => {
-  const [{ data: cats }, { data: tms }] = await Promise.all([
-    supabase.from('dds_categorias').select('*').order('nome'),
+  // categorias vêm do cache; temas buscados direto (mudam com frequência)
+  const [cats, { data: tms }] = await Promise.all([
+    dadosStore.getDdsCategorias(),
     supabase.from('dds_temas').select('*').order('created_at', { ascending: false })
   ])
-  if (cats) categorias.value = cats
+  categorias.value = cats
   if (tms) temas.value = tms
 }
 

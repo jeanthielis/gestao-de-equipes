@@ -110,6 +110,13 @@
             <span class="text-sm">Relatório de Apontamentos</span>
           </router-link>
 
+          <router-link v-if="authStore.temPermissao('relatorio_avancado')" to="/relatorio-avancado"
+            class="flex items-center px-4 py-3 text-slate-300 rounded-2xl hover:bg-white/10 hover:text-white transition-all group"
+            active-class="bg-violet-500/10 text-violet-400 font-semibold border border-violet-500/20">
+            <i class="fa-solid fa-chart-column w-7 text-lg group-hover:scale-110 transition-transform"></i>
+            <span class="text-sm">Relatórios Avançados</span>
+          </router-link>
+
           <router-link v-if="authStore.temPermissao('perfil_funcionario')" to="/perfil-funcionario"
             class="flex items-center px-4 py-3 text-slate-300 rounded-2xl hover:bg-white/10 hover:text-white transition-all group"
             active-class="bg-purple-500/10 text-purple-400 font-semibold border border-purple-500/20">
@@ -182,7 +189,7 @@
         </div>
 
         <!-- Ações do header -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 sm:gap-2">
 
           <!-- Busca global -->
           <button
@@ -216,7 +223,7 @@
       </header>
 
       <!-- Conteúdo das páginas -->
-      <div class="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 relative">
+      <div class="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 relative">
         <div class="max-w-7xl mx-auto pb-20 md:pb-0">
           <router-view v-slot="{ Component }">
             <transition name="page" mode="out-in">
@@ -252,7 +259,7 @@ const tituloRota = computed(() => route.meta?.title || 'Workspace')
 
 const mostrarMenuGestao = computed(() => {
   if (authStore.profile?.cargoNome === 'SuperAdmin') return true
-  const slugs = ['admin', 'funcionarios', 'unidades', 'checklists', 'dds_temas', 'dds_aplicar', 'dds_historico', 'diario_bordo', 'relatorio_apontos', 'perfil_funcionario', 'acoes_corretivas', 'tendencias', 'log_auditoria']
+  const slugs = ['admin', 'funcionarios', 'unidades', 'checklists', 'dds_temas', 'dds_aplicar', 'dds_historico', 'diario_bordo', 'relatorio_apontos', 'relatorio_avancado', 'perfil_funcionario', 'acoes_corretivas', 'tendencias', 'log_auditoria']
   return slugs.some((p) => authStore.temPermissao(p))
 })
 

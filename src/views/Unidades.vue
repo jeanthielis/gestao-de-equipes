@@ -208,6 +208,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useDadosStore } from '../stores/dados'
 import { toast, confirmar, traduzirErro } from '../lib/alerts'
 
 // Controle das Abas
@@ -224,25 +225,32 @@ const novaEquipe = ref({ nome: '', setor_id: '' })
 const loadingUnidade = ref(false)
 const loadingSetor = ref(false)
 const loadingEquipe = ref(false)
+const dadosStore = useDadosStore()
 
 const fetchData = async () => {
-  const [resU, resS, resE] = await Promise.all([
-    supabase.from('unidades').select('*').order('nome'),
-    supabase.from('setores').select('id, nome, unidade_id, unidades(nome)').order('nome'),
-    supabase.from('equipes').select('id, nome, setor_id, setores(nome, unidades(nome))').order('nome')
+  // Força revalidação após mutação (insert/delete), senão usa cache
+  const [u, s, e] = await Promise.all([
+    dadosStore.getUnidades(),
+    dadosStore.getSetores(),
+    dadosStore.getEquipes(),
   ])
-  if (resU.error) { toast.fire({ icon: 'error', title: 'Erro ao carregar unidades', text: traduzirErro(resU.error) }); return }
-  if (resS.error) { toast.fire({ icon: 'error', title: 'Erro ao carregar setores', text: traduzirErro(resS.error) }); return }
-  if (resE.error) { toast.fire({ icon: 'error', title: 'Erro ao carregar equipes', text: traduzirErro(resE.error) }); return }
-  if (resU.data) unidades.value = resU.data
-  if (resS.data) setores.value = resS.data
-  if (resE.data) equipes.value = resE.data
+  unidades.value = u
+  setores.value  = s
+  equipes.value  = e
+}
+
+// Invalida cache e rebusca após qualquer mutação na estrutura
+const recarregar = async () => {
+  dadosStore.invalidar('unidades')
+  dadosStore.invalidar('setores')
+  dadosStore.invalidar('equipes')
+  await fetchData()
 }
 
 const salvarUnidade = async () => {
   loadingUnidade.value = true
   const { error } = await supabase.from('unidades').insert([{ nome: novaUnidade.value.nome.trim() }])
-  if (!error) { toast.fire({ icon: 'success', title: 'Unidade criada!' }); novaUnidade.value.nome = ''; await fetchData() } 
+  if (!error) { toast.fire({ icon: 'success', title: 'Unidade criada!' }); novaUnidade.value.nome = ''; await recarregar() } 
   else toast.fire({ icon: 'error', title: 'Erro', text: traduzirErro(error) })
   loadingUnidade.value = false
 }
@@ -250,7 +258,7 @@ const salvarUnidade = async () => {
 const salvarSetor = async () => {
   loadingSetor.value = true
   const { error } = await supabase.from('setores').insert([{ nome: novoSetor.value.nome.trim(), unidade_id: novoSetor.value.unidade_id }])
-  if (!error) { toast.fire({ icon: 'success', title: 'Setor criado!' }); novoSetor.value.nome = ''; await fetchData() } 
+  if (!error) { toast.fire({ icon: 'success', title: 'Setor criado!' }); novoSetor.value.nome = ''; await recarregar() } 
   else toast.fire({ icon: 'error', title: 'Erro', text: traduzirErro(error) })
   loadingSetor.value = false
 }
@@ -258,7 +266,7 @@ const salvarSetor = async () => {
 const salvarEquipe = async () => {
   loadingEquipe.value = true
   const { error } = await supabase.from('equipes').insert([{ nome: novaEquipe.value.nome.trim(), setor_id: novaEquipe.value.setor_id }])
-  if (!error) { toast.fire({ icon: 'success', title: 'Equipe criada!' }); novaEquipe.value.nome = ''; await fetchData() } 
+  if (!error) { toast.fire({ icon: 'success', title: 'Equipe criada!' }); novaEquipe.value.nome = ''; await recarregar() } 
   else toast.fire({ icon: 'error', title: 'Erro', text: traduzirErro(error) })
   loadingEquipe.value = false
 }
@@ -267,7 +275,7 @@ const deletarUnidade = async (u) => {
   const result = await confirmar('Excluir Unidade?', `Isso removerá setores e equipes de <b>${u.nome}</b>.`, 'Sim, excluir')
   if (result.isConfirmed) {
     const { error } = await supabase.from('unidades').delete().eq('id', u.id)
-    if (!error) { toast.fire({ icon: 'success', title: 'Removida!' }); await fetchData() }
+    if (!error) { toast.fire({ icon: 'success', title: 'Removida!' }); await recarregar() }
   }
 }
 
@@ -275,7 +283,7 @@ const deletarSetor = async (s) => {
   const result = await confirmar('Excluir Setor?', `Isso removerá as equipes de <b>${s.nome}</b>.`, 'Sim, excluir')
   if (result.isConfirmed) {
     const { error } = await supabase.from('setores').delete().eq('id', s.id)
-    if (!error) { toast.fire({ icon: 'success', title: 'Removido!' }); await fetchData() }
+    if (!error) { toast.fire({ icon: 'success', title: 'Removido!' }); await recarregar() }
   }
 }
 
@@ -283,7 +291,7 @@ const deletarEquipe = async (eq) => {
   const result = await confirmar('Excluir Equipe?', `Deseja excluir a equipe <b>${eq.nome}</b>?`, 'Sim, excluir')
   if (result.isConfirmed) {
     const { error } = await supabase.from('equipes').delete().eq('id', eq.id)
-    if (!error) { toast.fire({ icon: 'success', title: 'Removida!' }); await fetchData() }
+    if (!error) { toast.fire({ icon: 'success', title: 'Removida!' }); await recarregar() }
   }
 }
 

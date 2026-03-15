@@ -124,6 +124,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useDadosStore } from '../stores/dados'
 import { toast, alerta } from '../lib/alerts'
 
 const listasSalvas = ref([])
@@ -135,12 +136,16 @@ const buscaMatricula = ref('')
 const listaSelecionada = ref('')
 const salvando = ref(false)
 const presencas = ref({}) // true = presente, false = ausente
+const dadosStore = useDadosStore()
 
 const dataDeHoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
 
 const fetchData = async () => {
-  const { data: q } = await supabase.from('itens_checklist').select('id, descricao').order('descricao')
-  if (q) quesitos.value = q.map(item => ({ id: item.id, titulo: item.descricao }))
+  // itens_checklist vêm do cache — mudam raramente
+  const itens = await dadosStore.getItensChecklist()
+  quesitos.value = itens
+    .filter(i => i.ativo !== false)
+    .map(item => ({ id: item.id, titulo: item.descricao }))
 
   const { data: ls } = await supabase.from('diario_listas').select('*').order('created_at', { ascending: false })
   if (ls) listasSalvas.value = ls

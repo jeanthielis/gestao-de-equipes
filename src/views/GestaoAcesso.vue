@@ -68,7 +68,7 @@
       </div>
 
       <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden overflow-x-auto">
-        <table class="w-full text-left text-sm">
+        <table class="w-full text-left text-sm min-w-[600px]">
           <thead class="bg-slate-50 text-[10px] uppercase tracking-widest font-black text-slate-400 border-b border-slate-100">
             <tr>
               <th class="px-5 py-3">Usuário</th>
@@ -78,6 +78,13 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-50">
+            <tr v-if="usuarios.length === 0">
+              <td colspan="4" class="px-5 py-12 text-center text-slate-400">
+                <i class="fa-solid fa-users text-3xl block mb-2 text-slate-300"></i>
+                <p class="font-bold text-slate-500">Nenhum usuário encontrado.</p>
+                <p class="text-xs mt-1">Cadastre um usuário usando o botão acima.</p>
+              </td>
+            </tr>
             <tr v-for="u in usuarios" :key="u.id" class="hover:bg-slate-50/50">
               <td class="px-5 py-4">
                 <div class="font-bold text-slate-700">{{ u.nome }}</div>
@@ -105,12 +112,92 @@
       </div>
     </div>
 
+    <!-- Aba: Cargos (níveis de acesso) -->
+    <div v-if="abaAtiva === 'niveis'" class="space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Formulário novo cargo -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
+          <h3 class="font-bold text-slate-800 mb-5 flex items-center">
+            <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mr-3">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            Novo Cargo
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-black text-slate-500 uppercase mb-1">Nome do Cargo</label>
+              <input v-model="novoNivel.nome" type="text" placeholder="Ex: Supervisor de Turno"
+                class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-black text-slate-500 uppercase mb-2">Permissões de Módulos</label>
+              <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                <label v-for="mod in todosModulos" :key="mod.slug"
+                  class="flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-colors"
+                  :class="novoNivel.permissoes.includes(mod.slug) ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'">
+                  <input type="checkbox" :value="mod.slug" v-model="novoNivel.permissoes" class="rounded text-indigo-600" />
+                  <div>
+                    <p class="text-xs font-bold text-slate-700">{{ mod.label }}</p>
+                    <p class="text-[10px] text-slate-400 font-mono">{{ mod.slug }}</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <button @click="salvarNivel" :disabled="salvandoNivel || !novoNivel.nome"
+              class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-all disabled:opacity-50 flex justify-center items-center shadow-sm">
+              <i v-if="salvandoNivel" class="fa-solid fa-circle-notch fa-spin mr-2"></i>
+              {{ salvandoNivel ? 'Salvando...' : 'Criar Cargo' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista de cargos existentes -->
+        <div class="lg:col-span-2 space-y-3">
+          <div v-if="niveis.length === 0" class="bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-400">
+            <i class="fa-solid fa-shield-halved text-3xl block mb-2 text-slate-300"></i>
+            <p class="font-bold text-slate-500">Nenhum cargo criado ainda.</p>
+            <p class="text-xs mt-1">Crie um cargo e atribua permissões de módulos a ele.</p>
+          </div>
+          <div v-for="nivel in niveis" :key="nivel.id"
+            class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                  <i class="fa-solid fa-shield-halved text-sm"></i>
+                </div>
+                <div>
+                  <p class="font-black text-slate-800">{{ nivel.nome }}</p>
+                  <p class="text-[10px] text-slate-400">
+                    {{ nivel.permissoes_acesso?.length || 0 }} permissão(ões) •
+                    {{ usuarios.filter(u => u.nivel_id === nivel.id).length }} usuário(s)
+                  </p>
+                </div>
+              </div>
+              <button @click="excluirNivel(nivel)" class="text-slate-300 hover:text-rose-500 transition-colors p-2">
+                <i class="fa-solid fa-trash text-sm"></i>
+              </button>
+            </div>
+            <div class="px-5 py-3 flex flex-wrap gap-1.5">
+              <span v-if="!nivel.permissoes_acesso?.length" class="text-xs text-slate-400 italic">Sem permissões atribuídas.</span>
+              <span v-for="p in nivel.permissoes_acesso" :key="p.nivel_id + p.modulo_slug"
+                class="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg text-[10px] font-bold font-mono">
+                {{ p.modulo_slug }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase, supabaseCadastro } from '../lib/supabase'
+import { useDadosStore } from '../stores/dados'
 import { toast, alerta, traduzirErro } from '../lib/alerts'
 import { registrarLog } from '../lib/auditoria'
 
@@ -123,6 +210,7 @@ const equipes = ref([])
 
 const modalAberto = ref(false)
 const salvando = ref(false)
+const dadosStore = useDadosStore()
 const dominio = import.meta.env.VITE_EMAIL_DOMAIN || '@safetrack.com.br'
 
 const form = ref({ nome: '', loginGerado: '', senha: '', unidadeId: '', setorId: '', equipeId: '' })
@@ -143,14 +231,47 @@ const gerarLoginAutomatico = () => {
 }
 
 const fetchData = async () => {
-  const [resU, resN, resUn, resS, resEq] = await Promise.all([
-    supabase.from('usuarios').select('*, niveis_acesso(nome), unidade_vinculada:unidades(nome), setor_vinculado:setores(nome), equipe_vinculada:equipes(nome)').order('nome'),
-    supabase.from('niveis_acesso').select('*').order('nome'),
-    supabase.from('unidades').select('*').order('nome'),
-    supabase.from('setores').select('*').order('nome'),
-    supabase.from('equipes').select('*').order('nome')
+  const [resU, resP, u, s, e] = await Promise.all([
+    supabase.from('usuarios').select(`
+      id, nome, email, nivel_id, nivel_visibilidade,
+      niveis_acesso ( nome ),
+      unidade_vinculada:unidade_vinculada_id ( nome ),
+      setor_vinculado:setor_vinculado_id ( nome ),
+      equipe_vinculada:equipe_vinculada_id ( nome )
+    `).order('nome'),
+    // Permissões sempre frescas (mudam ao criar/excluir cargos)
+    supabase.from('permissoes_acesso').select('nivel_id, modulo_slug'),
+    // Estrutura vem do cache compartilhado
+    dadosStore.getUnidades(),
+    dadosStore.getSetores(),
+    dadosStore.getEquipesSimples(),
   ])
-  usuarios.value = resU.data || []; niveis.value = resN.data || []; unidades.value = resUn.data || []; setores.value = resS.data || []; equipes.value = resEq.data || []
+  // niveis também do cache
+  const niveisRaw = await dadosStore.getNiveis()
+  const resN = { data: niveisRaw, error: null }
+
+  if (resU.error) {
+    console.error('[GestaoAcesso] Erro ao buscar usuários:', resU.error)
+    toast.fire({ icon: 'error', title: 'Erro ao carregar usuários', text: traduzirErro(resU.error) })
+  }
+  if (resN.error) {
+    console.error('[GestaoAcesso] Erro cargos (completo):', JSON.stringify(resN.error))
+  }
+  if (resP.error) {
+    console.error('[GestaoAcesso] Erro permissões (completo):', JSON.stringify(resP.error))
+  }
+
+  // Mescla permissões dentro de cada nível manualmente
+  const permissoes = resP.data || []
+  niveis.value = (resN.data || []).map(n => ({
+    ...n,
+    permissoes_acesso: permissoes.filter(p => p.nivel_id === n.id)
+  }))
+
+  usuarios.value = resU.data || []
+  unidades.value = u
+  setores.value  = s
+  equipes.value  = e
 }
 
 const salvarNovoUsuario = async () => {
@@ -234,6 +355,92 @@ const excluirUsuario = async (u) => {
   if (isConfirmed) {
     await supabase.from('usuarios').delete().eq('id', u.id)
     toast.fire({ icon: 'success', title: 'Removido' }); await fetchData()
+  }
+}
+
+// Lista completa de módulos disponíveis no sistema
+const todosModulos = [
+  { slug: 'home',               label: 'Painel Operacional' },
+  { slug: 'tendencias',         label: 'Tendências' },
+  { slug: 'funcionarios',       label: 'Efetivo & Operadores' },
+  { slug: 'unidades',           label: 'Estrutura e Liderança' },
+  { slug: 'checklists',         label: 'Configurações de Checklist' },
+  { slug: 'dds_temas',          label: 'Biblioteca de DDS' },
+  { slug: 'dds_aplicar',        label: 'Aplicar DDS' },
+  { slug: 'dds_historico',      label: 'Histórico de DDS' },
+  { slug: 'diario_bordo',       label: 'Diário de Bordo' },
+  { slug: 'relatorio_apontos',  label: 'Relatório de Apontamentos' },
+  { slug: 'relatorio_avancado', label: 'Relatórios Avançados' },
+  { slug: 'perfil_funcionario', label: 'Perfil do Funcionário' },
+  { slug: 'acoes_corretivas',   label: 'Ações Corretivas' },
+  { slug: 'admin',              label: 'Controle de Acesso' },
+  { slug: 'log_auditoria',      label: 'Log de Auditoria' },
+]
+
+const novoNivel = ref({ nome: '', permissoes: [] })
+const salvandoNivel = ref(false)
+
+const salvarNivel = async () => {
+  if (!novoNivel.value.nome.trim()) return
+  salvandoNivel.value = true
+  try {
+    // Cria o nível
+    const { data: nivel, error: errNivel } = await supabase
+      .from('niveis_acesso')
+      .insert([{ nome: novoNivel.value.nome.trim() }])
+      .select()
+      .single()
+    if (errNivel) throw errNivel
+
+    // Insere as permissões selecionadas
+    if (novoNivel.value.permissoes.length > 0) {
+      const perms = novoNivel.value.permissoes.map(slug => ({
+        nivel_id: nivel.id,
+        modulo_slug: slug
+      }))
+      const { error: errPerms } = await supabase.from('permissoes_acesso').insert(perms)
+      if (errPerms) throw errPerms
+    }
+
+    toast.fire({ icon: 'success', title: 'Cargo criado com sucesso!' })
+    await registrarLog('criou_cargo', 'niveis_acesso', { nome: nivel.nome })
+    dadosStore.invalidar('niveis')
+    novoNivel.value = { nome: '', permissoes: [] }
+    await fetchData()
+  } catch (err) {
+    toast.fire({ icon: 'error', title: 'Erro ao criar cargo', text: traduzirErro(err) })
+  } finally {
+    salvandoNivel.value = false
+  }
+}
+
+const excluirNivel = async (nivel) => {
+  const usuariosVinculados = usuarios.value.filter(u => u.nivel_id === nivel.id).length
+  if (usuariosVinculados > 0) {
+    toast.fire({
+      icon: 'warning',
+      title: 'Cargo em uso',
+      text: `${usuariosVinculados} usuário(s) possuem este cargo. Reassine-os antes de excluir.`
+    })
+    return
+  }
+  const { isConfirmed } = await alerta.fire({
+    title: 'Excluir Cargo?',
+    html: `O cargo <b>${nivel.nome}</b> e todas as suas permissões serão removidos.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sim, excluir',
+    cancelButtonText: 'Cancelar'
+  })
+  if (!isConfirmed) return
+  const { error } = await supabase.from('niveis_acesso').delete().eq('id', nivel.id)
+  if (!error) {
+    toast.fire({ icon: 'success', title: 'Cargo removido.' })
+    await registrarLog('excluiu_cargo', 'niveis_acesso', { id: nivel.id, nome: nivel.nome })
+    dadosStore.invalidar('niveis')
+    await fetchData()
+  } else {
+    toast.fire({ icon: 'error', title: 'Erro ao excluir', text: traduzirErro(error) })
   }
 }
 
