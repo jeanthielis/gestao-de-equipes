@@ -166,9 +166,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/auth'
 import { toast, traduzirErro } from '../lib/alerts'
 import { badgeClass, iconeStatus, getCorBarra, getCorTexto, formatarData } from '../lib/utils'
 import { gerarFichaFuncionarioPDF } from '../lib/relatoriosPDF'
+
+const authStore = useAuthStore()
 
 const matriculaBusca = ref('')
 const funcionario = ref(null)
@@ -216,14 +219,23 @@ const buscarFuncionario = async () => {
   participacoesDDS.value = []
 
   try {
-    const { data: func, error } = await supabase
+    let queryFunc = supabase
       .from('funcionarios')
       .select('*')
       .eq('matricula', matriculaBusca.value.trim())
-      .single()
+
+    // Restringe à equipe do usuário logado para não-SuperAdmin
+    if (!authStore.isSuperAdmin && authStore.equipeId) {
+      queryFunc = queryFunc.eq('equipe_id', authStore.equipeId)
+    }
+
+    const { data: func, error } = await queryFunc.single()
 
     if (error || !func) {
       buscaFeita.value = true
+      if (!authStore.isSuperAdmin) {
+        toast.fire({ icon: 'warning', title: 'Não encontrado', text: 'Colaborador não encontrado na sua equipe.' })
+      }
       return
     }
 

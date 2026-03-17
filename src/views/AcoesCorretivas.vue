@@ -150,10 +150,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/auth'
 import { toast, traduzirErro } from '../lib/alerts'
 import { gerarAcoesCorretivasPDF } from '../lib/relatoriosPDF'
 import { registrarLog } from '../lib/auditoria'
 
+const authStore = useAuthStore()
 const ncs = ref([])
 const carregando = ref(false)
 const filtroPendentes = ref(false)
@@ -174,20 +176,32 @@ const ncsExibidas = computed(() => {
 const carregarNCs = async () => {
   carregando.value = true
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('diario_avaliacoes')
       .select(`
         id, status, justificativa, funcionario_id,
         acao_corretiva, status_acao, responsavel_acao, data_conclusao,
-        funcionarios(id, nome, matricula),
+        funcionarios(id, nome, matricula, equipe_id),
         itens_checklist(descricao),
         diario_execucoes(created_at)
       `)
       .in('status', ['NC', 'CP'])
       .order('created_at', { ascending: false })
 
+    // Restringe visibilidade para não-SuperAdmin
+    if (!authStore.isSuperAdmin && authStore.equipeId) {
+      query = query.eq('funcionarios.equipe_id', authStore.equipeId)
+    }
+
+    const { data, error } = await query
+
     if (error) throw error
-    ncs.value = (data || []).map((n) => ({ ...n, status_acao: n.status_acao || 'aberta' }))
+    let lista = (data || []).map((n) => ({ ...n, status_acao: n.status_acao || 'aberta' }))
+    // Filtragem extra no cliente para garantir isolamento
+    if (!authStore.isSuperAdmin && authStore.equipeId) {
+      lista = lista.filter(n => n.funcionarios?.equipe_id === authStore.equipeId)
+    }
+    ncs.value = lista
   } catch (err) {
     toast.fire({ icon: 'error', title: 'Erro ao carregar', text: traduzirErro(err) })
   } finally {

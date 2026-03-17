@@ -125,6 +125,7 @@
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useDadosStore } from '../stores/dados'
+import { useAuthStore } from '../stores/auth'
 import { toast, alerta } from '../lib/alerts'
 
 const listasSalvas = ref([])
@@ -137,6 +138,7 @@ const listaSelecionada = ref('')
 const salvando = ref(false)
 const presencas = ref({}) // true = presente, false = ausente
 const dadosStore = useDadosStore()
+const authStore = useAuthStore()
 
 const dataDeHoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
 
@@ -147,7 +149,12 @@ const fetchData = async () => {
     .filter(i => i.ativo !== false)
     .map(item => ({ id: item.id, titulo: item.descricao }))
 
-  const { data: ls } = await supabase.from('diario_listas').select('*').order('created_at', { ascending: false })
+  // Filtra listas salvas: não-SuperAdmin vê apenas as da própria equipe
+  let qListas = supabase.from('diario_listas').select('*').order('created_at', { ascending: false })
+  if (!authStore.isSuperAdmin && authStore.equipeId) {
+    qListas = qListas.eq('equipe_id', authStore.equipeId)
+  }
+  const { data: ls } = await qListas
   if (ls) listasSalvas.value = ls
 }
 
@@ -170,7 +177,12 @@ const adicionarPorMatricula = async () => {
     return
   }
 
-  const { data: func } = await supabase.from('funcionarios').select('id, nome, matricula, funcao').eq('matricula', matriculaLimpa).single()
+  // Busca o funcionário — restringe à própria equipe para não-SuperAdmin
+  let query = supabase.from('funcionarios').select('id, nome, matricula, funcao').eq('matricula', matriculaLimpa).eq('ativo', true)
+  if (!authStore.isSuperAdmin && authStore.equipeId) {
+    query = query.eq('equipe_id', authStore.equipeId)
+  }
+  const { data: func } = await query.single()
 
   if (func) {
     listaAtual.value.push(func)
@@ -178,7 +190,7 @@ const adicionarPorMatricula = async () => {
     presencas.value[func.id] = true
     buscaMatricula.value = ''
   } else {
-    toast.fire({ icon: 'error', title: 'Matrícula não encontrada!' })
+    toast.fire({ icon: 'error', title: 'Matrícula não encontrada!', text: authStore.isSuperAdmin ? '' : 'Verifique se o colaborador pertence à sua equipe.' })
   }
 }
 
@@ -206,7 +218,10 @@ const salvarListaAtual = async () => {
   if (!nomeDaLista) return
 
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: novaLista, error: err1 } = await supabase.from('diario_listas').insert([{ nome: nomeDaLista, criado_por: user.id }]).select().single()
+  const novaListaPayload = { nome: nomeDaLista, criado_por: user.id }
+  // Vincula a lista à equipe do usuário (para filtragem futura)
+  if (authStore.equipeId) novaListaPayload.equipe_id = authStore.equipeId
+  const { data: novaLista, error: err1 } = await supabase.from('diario_listas').insert([novaListaPayload]).select().single()
 
   if (err1) { 
     toast.fire({ icon: 'error', title: 'Erro ao salvar a lista.' })

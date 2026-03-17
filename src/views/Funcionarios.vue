@@ -39,31 +39,40 @@
 
           <hr class="border-slate-100 my-4">
 
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Unidade</label>
-            <select v-model="novo.unidade_id" @change="novo.setor_id = ''; novo.equipe_id = ''" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
-              <option value="" disabled>{{ unidades.length === 0 ? 'Nenhuma unidade cadastrada' : 'Selecione a unidade...' }}</option>
-              <option v-for="u in unidades" :key="u.id" :value="u.id">{{ u.nome }}</option>
-            </select>
+          <!-- Seletores de estrutura: visíveis apenas para SuperAdmin -->
+          <template v-if="authStore.isSuperAdmin">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Unidade</label>
+              <select v-model="novo.unidade_id" @change="novo.setor_id = ''; novo.equipe_id = ''" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                <option value="" disabled>{{ unidades.length === 0 ? 'Nenhuma unidade cadastrada' : 'Selecione a unidade...' }}</option>
+                <option v-for="u in unidades" :key="u.id" :value="u.id">{{ u.nome }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Setor</label>
+              <select v-model="novo.setor_id" @change="novo.equipe_id = ''" :disabled="!novo.unidade_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white disabled:opacity-50">
+                <option value="" disabled>{{ !novo.unidade_id ? 'Primeiro selecione a unidade' : 'Selecione o setor...' }}</option>
+                <option v-for="s in setoresDaUnidade" :key="s.id" :value="s.id">{{ s.nome }}</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Equipe / Turno</label>
+              <select v-model="novo.equipe_id" :disabled="!novo.setor_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white disabled:opacity-50">
+                <option value="" disabled>{{ !novo.setor_id ? 'Primeiro selecione o setor' : 'Selecione a equipe...' }}</option>
+                <option v-for="e in equipesDoSetor" :key="e.id" :value="e.id">{{ e.nome }}</option>
+              </select>
+            </div>
+          </template>
+
+          <!-- Aviso para usuários não-SuperAdmin: equipe é fixada automaticamente -->
+          <div v-else class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-sm text-indigo-700 flex items-center gap-2">
+            <i class="fa-solid fa-lock text-indigo-400"></i>
+            <span>O colaborador será cadastrado automaticamente na <strong>sua equipe</strong>.</span>
           </div>
 
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Setor</label>
-            <select v-model="novo.setor_id" @change="novo.equipe_id = ''" :disabled="!novo.unidade_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white disabled:opacity-50">
-              <option value="" disabled>{{ !novo.unidade_id ? 'Primeiro selecione a unidade' : 'Selecione o setor...' }}</option>
-              <option v-for="s in setoresDaUnidade" :key="s.id" :value="s.id">{{ s.nome }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Equipe / Turno</label>
-            <select v-model="novo.equipe_id" :disabled="!novo.setor_id" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white disabled:opacity-50">
-              <option value="" disabled>{{ !novo.setor_id ? 'Primeiro selecione o setor' : 'Selecione a equipe...' }}</option>
-              <option v-for="e in equipesDoSetor" :key="e.id" :value="e.id">{{ e.nome }}</option>
-            </select>
-          </div>
-
-          <button type="submit" :disabled="loading || !novo.equipe_id" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-all mt-4 flex justify-center items-center disabled:opacity-50">
+          <button type="submit" :disabled="loading || (authStore.isSuperAdmin && !novo.equipe_id)" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-all mt-4 flex justify-center items-center disabled:opacity-50">
             <i v-if="loading" class="fa-solid fa-circle-notch fa-spin mr-2"></i>
             {{ loading ? 'Salvando...' : 'Cadastrar Operador' }}
           </button>
@@ -128,6 +137,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useDadosStore } from '../stores/dados'
+import { useAuthStore } from '../stores/auth'
 import { toast, alerta, traduzirErro } from '../lib/alerts'
 
 const funcionarios = ref([])
@@ -138,6 +148,7 @@ const equipes = ref([])
 const loading = ref(false)
 const termoBusca = ref('')
 const dadosStore = useDadosStore()
+const authStore = useAuthStore()
 
 const novo = ref({
   nome: '',
@@ -171,8 +182,7 @@ const fetchData = async () => {
   loading.value = true
   try {
     // Dados de referência vêm do cache (banco só consultado se expirado)
-    const [resF, u, s, e] = await Promise.all([
-      supabase.from('funcionarios').select(`
+    let query = supabase.from('funcionarios').select(`
         *,
         equipes (
           nome,
@@ -181,7 +191,15 @@ const fetchData = async () => {
             unidades (nome)
           )
         )
-      `).order('nome'),
+      `).order('nome')
+
+    // Restrição de visibilidade: não-SuperAdmin vê apenas sua equipe
+    if (!authStore.isSuperAdmin && authStore.equipeId) {
+      query = query.eq('equipe_id', authStore.equipeId)
+    }
+
+    const [resF, u, s, e] = await Promise.all([
+      query,
       dadosStore.getUnidades(),
       dadosStore.getSetores(),
       dadosStore.getEquipesSimples(),
@@ -198,7 +216,18 @@ const fetchData = async () => {
 
 // === SALVAR ===
 const salvarFuncionario = async () => {
-  if (!novo.value.nome || !novo.value.equipe_id) return
+  if (!novo.value.nome) return
+
+  // Não-SuperAdmin: força equipe_id para a própria equipe
+  const equipeDestino = authStore.isSuperAdmin
+    ? novo.value.equipe_id
+    : authStore.equipeId
+
+  if (!equipeDestino) {
+    toast.fire({ icon: 'error', title: 'Sem equipe vinculada', text: 'Seu usuário não está vinculado a nenhuma equipe. Contate o administrador.' })
+    return
+  }
+
   loading.value = true
 
   const { data: authData } = await supabase.auth.getUser()
@@ -206,11 +235,11 @@ const salvarFuncionario = async () => {
 
   const dadosParaSalvar = {
     nome: novo.value.nome,
-    equipe_id: novo.value.equipe_id,
+    equipe_id: equipeDestino,
     matricula: novo.value.matricula ? novo.value.matricula : null,
     funcao: novo.value.cargo ? novo.value.cargo : 'Operador',
     cargo: novo.value.cargo ? novo.value.cargo : 'Operador',
-    gestor_id: usuarioLogadoId 
+    gestor_id: usuarioLogadoId
   }
 
   const { error } = await supabase.from('funcionarios').insert([dadosParaSalvar])

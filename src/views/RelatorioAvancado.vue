@@ -243,11 +243,13 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/auth'
 import { toast, traduzirErro } from '../lib/alerts'
 import { gerarRelatorioAvancadoPDF } from '../lib/relatoriosPDF'
 import VueApexCharts from 'vue3-apexcharts'
 
 const apexchart = VueApexCharts
+const authStore = useAuthStore()
 
 // ── Estado ──────────────────────────────────────────────────
 const carregando    = ref(false)
@@ -305,28 +307,40 @@ const buscar = async () => {
   try {
     const ini = filtros.value.dataInicio + 'T00:00:00'
     const fim = filtros.value.dataFim    + 'T23:59:59'
+    const eqId = authStore.isSuperAdmin ? null : authStore.equipeId
 
-    const queries = [
-      supabase.from('diario_avaliacoes').select(`
+    let qPrincipal = supabase.from('diario_avaliacoes').select(`
         id, status, funcionario_id, quesito_id, created_at,
-        funcionarios ( id, nome, matricula, funcao,
+        funcionarios ( id, nome, matricula, funcao, equipe_id,
           equipes ( nome, setores ( nome, unidades(nome) ) )
         ),
         itens_checklist ( descricao )
       `).gte('created_at', ini).lte('created_at', fim).order('created_at')
-    ]
+
+    if (eqId) {
+      qPrincipal = qPrincipal.eq('funcionarios.equipe_id', eqId)
+    }
+
+    const queries = [qPrincipal]
 
     if (modoComparacao.value && filtros.value.compInicio && filtros.value.compFim) {
-      queries.push(
-        supabase.from('diario_avaliacoes').select('id, status, created_at')
-          .gte('created_at', filtros.value.compInicio + 'T00:00:00')
-          .lte('created_at', filtros.value.compFim    + 'T23:59:59')
+      let qComp = supabase.from('diario_avaliacoes').select('id, status, created_at')
+        .gte('created_at', filtros.value.compInicio + 'T00:00:00')
+        .lte('created_at', filtros.value.compFim    + 'T23:59:59')
+      queries.push(qComp)
+    }
+    const results = await Promise.all(queries)
+    let avaliacoesBruto = results[0].data || []
+
+    // Filtragem extra no cliente para garantir isolamento de equipe
+    if (!authStore.isSuperAdmin && authStore.equipeId) {
+      avaliacoesBruto = avaliacoesBruto.filter(
+        a => a.funcionarios?.equipe_id === authStore.equipeId
       )
     }
 
-    const results = await Promise.all(queries)
-    dados.value.avaliacoes  = results[0].data || []
-    dados.value.comparacao  = results[1]?.data || []
+    dados.value.avaliacoes = avaliacoesBruto
+    dados.value.comparacao = results[1]?.data || []
 
     if (results[0].error) throw results[0].error
   } catch (err) {

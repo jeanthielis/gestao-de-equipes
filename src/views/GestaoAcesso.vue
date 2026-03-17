@@ -198,6 +198,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { supabase, supabaseCadastro } from '../lib/supabase'
 import { useDadosStore } from '../stores/dados'
+import { useAuthStore } from '../stores/auth'
 import { toast, alerta, traduzirErro } from '../lib/alerts'
 import { registrarLog } from '../lib/auditoria'
 
@@ -211,6 +212,7 @@ const equipes = ref([])
 const modalAberto = ref(false)
 const salvando = ref(false)
 const dadosStore = useDadosStore()
+const authStore = useAuthStore()
 const dominio = import.meta.env.VITE_EMAIL_DOMAIN || '@safetrack.com.br'
 
 const form = ref({ nome: '', loginGerado: '', senha: '', unidadeId: '', setorId: '', equipeId: '' })
@@ -231,14 +233,21 @@ const gerarLoginAutomatico = () => {
 }
 
 const fetchData = async () => {
-  const [resU, resP, u, s, e] = await Promise.all([
-    supabase.from('usuarios').select(`
-      id, nome, email, nivel_id, nivel_visibilidade,
+  let qUsuarios = supabase.from('usuarios').select(`
+      id, nome, email, nivel_id, nivel_visibilidade, equipe_id,
       niveis_acesso ( nome ),
       unidade_vinculada:unidade_vinculada_id ( nome ),
       setor_vinculado:setor_vinculado_id ( nome ),
       equipe_vinculada:equipe_vinculada_id ( nome )
-    `).order('nome'),
+    `).order('nome')
+
+  // Não-SuperAdmin vê apenas usuários da própria equipe
+  if (!authStore.isSuperAdmin && authStore.equipeId) {
+    qUsuarios = qUsuarios.eq('equipe_id', authStore.equipeId)
+  }
+
+  const [resU, resP, u, s, e] = await Promise.all([
+    qUsuarios,
     // Permissões sempre frescas (mudam ao criar/excluir cargos)
     supabase.from('permissoes_acesso').select('nivel_id, modulo_slug'),
     // Estrutura vem do cache compartilhado
@@ -293,11 +302,19 @@ const salvarNovoUsuario = async () => {
       if (form.value.setorId) visibilidade = 'Setor'
       if (form.value.equipeId) visibilidade = 'Equipe'
 
+      // Não-SuperAdmin: força equipe do próprio usuário logado
+      const equipeDestino = authStore.isSuperAdmin
+        ? (form.value.equipeId || null)
+        : authStore.equipeId
+
+      if (!authStore.isSuperAdmin) visibilidade = 'Equipe'
+
       const insertData = {
         id: userId, nome: form.value.nome, email: emailCompleto,
         unidade_vinculada_id: form.value.unidadeId || null,
         setor_vinculado_id: form.value.setorId || null,
-        equipe_vinculada_id: form.value.equipeId || null,
+        equipe_vinculada_id: equipeDestino,
+        equipe_id: equipeDestino,
         nivel_visibilidade: visibilidade
       }
       

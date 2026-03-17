@@ -163,8 +163,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/auth'
 import { toast, traduzirErro } from '../lib/alerts'
 import html2pdf from 'html2pdf.js'
+
+const authStore = useAuthStore()
 
 const aplicacoes = ref([])
 const loading = ref(false)
@@ -225,14 +228,29 @@ const buscarAplicacoes = async (idsFiltro = null) => {
     dds_temas (titulo, dds_categorias(nome, cor)),
     dds_assinaturas (
       id, imagem_assinatura,
-      funcionarios (nome, matricula)
+      funcionarios (nome, matricula, equipe_id)
     )
   `).order('data_aplicacao', { ascending: false }).limit(50)
 
   if (idsFiltro) query = query.in('id', idsFiltro)
 
   const { data } = await query
-  if (data) aplicacoes.value = data
+
+  if (data) {
+    // Filtra no cliente: não-SuperAdmin vê apenas assinaturas da sua equipe
+    if (!authStore.isSuperAdmin && authStore.equipeId) {
+      aplicacoes.value = data
+        .map(ap => ({
+          ...ap,
+          dds_assinaturas: (ap.dds_assinaturas || []).filter(
+            s => s.funcionarios?.equipe_id === authStore.equipeId
+          )
+        }))
+        .filter(ap => ap.dds_assinaturas.length > 0)
+    } else {
+      aplicacoes.value = data
+    }
+  }
 }
 
 const limparBusca = () => {

@@ -173,27 +173,39 @@ const fetchDashboardData = async () => {
   const hoje = new Date().toISOString().split('T')[0]
   const noventaDiasAtras = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 
+  // Restrição de visibilidade por equipe
+  const eqId = authStore.isSuperAdmin ? null : authStore.equipeId
+
   try {
+    // Queries base
+    let qEq       = supabase.from('equipes').select('*', { count: 'exact', head: true })
+    let qDdsHoje  = supabase.from('dds_assinaturas').select('id').gte('assinado_em', hoje)
+    let qAval     = supabase.from('diario_avaliacoes').select('status, quesito_id, itens_checklist(descricao), funcionarios(equipe_id)').gte('created_at', noventaDiasAtras)
+    let qDdsLista = supabase.from('dds_aplicacoes').select('id, data_aplicacao, dds_temas(titulo), dds_assinaturas(id)').order('data_aplicacao', { ascending: false }).limit(5)
+
+    // Filtra por equipe quando não é SuperAdmin
+    if (eqId) {
+      qEq      = qEq.eq('id', eqId)
+      qDdsHoje = qDdsHoje.eq('funcionarios.equipe_id', eqId)
+      qAval    = qAval.eq('funcionarios.equipe_id', eqId)
+    }
+
     const [{ count: countEq }, { data: ddsHoje }, { data: avaliacoes }, { data: ddsLista }] =
-      await Promise.all([
-        supabase.from('equipes').select('*', { count: 'exact', head: true }),
-        supabase.from('dds_assinaturas').select('id').gte('assinado_em', hoje),
-        supabase.from('diario_avaliacoes').select('status, quesito_id, itens_checklist(descricao)').gte('created_at', noventaDiasAtras),
-        supabase
-          .from('dds_aplicacoes')
-          .select('id, data_aplicacao, dds_temas(titulo), dds_assinaturas(id)')
-          .order('data_aplicacao', { ascending: false })
-          .limit(5)
-      ])
+      await Promise.all([qEq, qDdsHoje, qAval, qDdsLista])
+
+    // Filtragem extra no cliente para avaliacoes (join filter pode retornar nulls)
+    const avsFiltradas = eqId
+      ? (avaliacoes || []).filter(a => a.funcionarios?.equipe_id === eqId)
+      : (avaliacoes || [])
 
     stats.value.totalEquipes = countEq || 0
     stats.value.totalAssinaturasDds = ddsHoje?.length || 0
 
-    if (avaliacoes) {
+    if (avsFiltradas) {
       const counts = { C: 0, CP: 0, NC: 0 }
       const pareto = {}
 
-      avaliacoes.forEach((a) => {
+      avsFiltradas.forEach((a) => {
         counts[a.status] = (counts[a.status] || 0) + 1
         if (a.status === 'NC' || a.status === 'CP') {
           const nome = a.itens_checklist?.descricao || 'Desconhecido'

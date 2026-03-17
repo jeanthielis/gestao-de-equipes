@@ -164,6 +164,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useDadosStore } from '../stores/dados'
+import { useAuthStore } from '../stores/auth'
 import { toast, alerta } from '../lib/alerts'
 
 const temas = ref([])
@@ -174,6 +175,7 @@ const buscaMatricula = ref('')
 const listaSelecionada = ref('')
 const loading = ref(false)
 const dadosStore = useDadosStore()
+const authStore = useAuthStore()
 const form = ref({ tema_id: '', equipe_id: null })
 const modal = ref({ aberto: false, funcionario: null })
 const canvasRef = ref(null)
@@ -182,9 +184,13 @@ let desenhando = false
 
 const fetchData = async () => {
   // temas vêm do cache compartilhado com BibliotecaDDS
+  let qListas = supabase.from('dds_listas').select('*').order('created_at', { ascending: false })
+  if (!authStore.isSuperAdmin && authStore.equipeId) {
+    qListas = qListas.eq('equipe_id', authStore.equipeId)
+  }
   const [tm, { data: ls }] = await Promise.all([
     dadosStore.getDdsTemas(),
-    supabase.from('dds_listas').select('*').order('created_at', { ascending: false })
+    qListas
   ])
   temas.value = tm
   if (ls) listasSalvas.value = ls
@@ -201,9 +207,16 @@ const adicionarPorMatricula = async () => {
     buscaMatricula.value = ''
     return
   }
+  // Para não-SuperAdmin, verifica se o funcionário pertence à equipe do usuário
   const { data: func } = await supabase.rpc('buscar_funcionario_dds', { p_matricula: matriculaLimpa })
   if (func && func.length > 0) {
-    listaAtual.value.push(func[0])
+    const f = func[0]
+    if (!authStore.isSuperAdmin && authStore.equipeId && f.equipe_id !== authStore.equipeId) {
+      toast.fire({ icon: 'warning', title: 'Acesso negado', text: 'Este colaborador não pertence à sua equipe.' })
+      buscaMatricula.value = ''
+      return
+    }
+    listaAtual.value.push(f)
     buscaMatricula.value = ''
   } else {
     toast.fire({ icon: 'error', title: 'Não encontrado!', text: `A matrícula ${matriculaLimpa} não existe ou está inativa.` })
@@ -219,7 +232,9 @@ const salvarListaAtual = async () => {
   const { value: nome } = await alerta.fire({ title: 'Salvar Lista', input: 'text', inputPlaceholder: 'Nome (Ex: Turma A)', showCancelButton: true, confirmButtonText: 'Salvar', cancelButtonText: 'Cancelar' })
   if (!nome) return
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: novaLista, error: err1 } = await supabase.from('dds_listas').insert([{ nome, criado_por: user.id }]).select().single()
+  const payload = { nome, criado_por: user.id }
+  if (authStore.equipeId) payload.equipe_id = authStore.equipeId
+  const { data: novaLista, error: err1 } = await supabase.from('dds_listas').insert([payload]).select().single()
   if (err1) { toast.fire({ icon: 'error', title: 'Erro ao salvar lista.' }); return }
   const membros = listaAtual.value.map(f => ({ lista_id: novaLista.id, funcionario_id: f.id }))
   await supabase.from('dds_listas_membros').insert(membros)

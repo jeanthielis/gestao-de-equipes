@@ -13,6 +13,13 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state) => !!state.user,
+
+    // Retorna true se o usuário logado é SuperAdmin (visão global)
+    isSuperAdmin: (state) => state.profile?.cargoNome === 'SuperAdmin',
+
+    // Retorna o equipe_id do usuário logado (null para SuperAdmin ou sem equipe)
+    equipeId: (state) => state.profile?.equipe_id ?? null,
+
     temPermissao: (state) => (slug) => {
       if (!state.profile) return false
       if (state.profile.cargoNome === 'SuperAdmin') return true

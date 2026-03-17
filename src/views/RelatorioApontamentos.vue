@@ -278,9 +278,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useAuthStore } from '../stores/auth'
 import { toast, traduzirErro } from '../lib/alerts'
 import { gerarRelatorioApontamentosPDF } from '../lib/relatoriosPDF'
 import { badgeClass, iconeStatus, getCorBarra, getCorTexto } from '../lib/utils'
+
+const authStore = useAuthStore()
 
 // ── Estado ──────────────────────────────────────────────────────────────────
 const execucoes = ref([])
@@ -337,7 +340,7 @@ const buscar = async () => {
           justificativa,
           funcionario_id,
           quesito_id,
-          funcionarios (id, nome, matricula, funcao),
+          funcionarios (id, nome, matricula, funcao, equipe_id),
           itens_checklist (descricao)
         )
       `)
@@ -356,6 +359,16 @@ const buscar = async () => {
     if (error) throw error
 
     let resultado = data || []
+
+    // Restrição por equipe para não-SuperAdmin
+    if (!authStore.isSuperAdmin && authStore.equipeId) {
+      resultado = resultado.map(ex => ({
+        ...ex,
+        diario_avaliacoes: (ex.diario_avaliacoes || []).filter(
+          a => a.funcionarios?.equipe_id === authStore.equipeId
+        )
+      }))
+    }
 
     // Filtro client-side por nome do funcionário (mais flexível)
     if (filtros.value.nomeFuncionario.trim()) {
