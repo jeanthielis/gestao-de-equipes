@@ -271,7 +271,7 @@ const handleLogin = async () => {
     if (error) throw error
 
     const { data: perfil, error: errPerfil } = await supabase
-      .from('usuarios').select('id, nome, nivel_id').eq('id', data.user.id).single()
+      .from('usuarios').select('id, nome, nivel_id').eq('id', data.user.id).maybeSingle()
 
     if (errPerfil || !perfil) {
       await supabase.auth.signOut()

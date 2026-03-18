@@ -54,9 +54,10 @@ export const useAuthStore = defineStore('auth', {
             )
           `)
           .eq('id', sessionUser.id)
-          .single()
+          .maybeSingle()
 
         if (error) throw error
+        if (!data) throw new Error('Perfil não encontrado.')
 
         const listaPermissoes =
           data.niveis_acesso?.permissoes_acesso?.map((p) => p.modulo_slug) || []

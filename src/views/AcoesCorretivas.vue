@@ -233,7 +233,7 @@ const salvarStatusAcao = async (nc) => {
       updates.data_conclusao = new Date().toISOString()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: perfil } = await supabase.from('usuarios').select('nome').eq('id', user.id).single()
+        const { data: perfil } = await supabase.from('usuarios').select('nome').eq('id', user.id).maybeSingle()
         if (perfil) updates.responsavel_acao = perfil.nome
       }
     }

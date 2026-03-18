@@ -195,7 +195,7 @@ const buscarDDS = async () => {
     const matricula = filtroMatricula.value.trim()
 
     if (matricula) {
-      const { data: func } = await supabase.from('funcionarios').select('id').eq('matricula', matricula).single()
+      const { data: func } = await supabase.from('funcionarios').select('id').eq('matricula', matricula).maybeSingle()
       if (!func) {
         toast.fire({ icon: 'warning', title: 'Matrícula não encontrada', text: 'Nenhum colaborador com esta matrícula.' })
         aplicacoes.value = []

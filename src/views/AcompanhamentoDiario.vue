@@ -182,7 +182,7 @@ const adicionarPorMatricula = async () => {
   if (!authStore.isSuperAdmin && authStore.equipeId) {
     query = query.eq('equipe_id', authStore.equipeId)
   }
-  const { data: func } = await query.single()
+  const { data: func } = await query.maybeSingle()
 
   if (func) {
     listaAtual.value.push(func)

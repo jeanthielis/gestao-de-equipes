@@ -229,7 +229,7 @@ const buscarFuncionario = async () => {
       queryFunc = queryFunc.eq('equipe_id', authStore.equipeId)
     }
 
-    const { data: func, error } = await queryFunc.single()
+    const { data: func, error } = await queryFunc.maybeSingle()
 
     if (error || !func) {
       buscaFeita.value = true
