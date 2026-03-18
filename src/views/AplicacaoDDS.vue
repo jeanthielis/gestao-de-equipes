@@ -207,16 +207,10 @@ const adicionarPorMatricula = async () => {
     buscaMatricula.value = ''
     return
   }
-  // Para não-SuperAdmin, verifica se o funcionário pertence à equipe do usuário
+  // DDS é livre: qualquer funcionário ativo pode ser adicionado, independente de equipe
   const { data: func } = await supabase.rpc('buscar_funcionario_dds', { p_matricula: matriculaLimpa })
   if (func && func.length > 0) {
-    const f = func[0]
-    if (!authStore.isSuperAdmin && authStore.equipeId && f.equipe_id !== authStore.equipeId) {
-      toast.fire({ icon: 'warning', title: 'Acesso negado', text: 'Este colaborador não pertence à sua equipe.' })
-      buscaMatricula.value = ''
-      return
-    }
-    listaAtual.value.push(f)
+    listaAtual.value.push(func[0])
     buscaMatricula.value = ''
   } else {
     toast.fire({ icon: 'error', title: 'Não encontrado!', text: `A matrícula ${matriculaLimpa} não existe ou está inativa.` })

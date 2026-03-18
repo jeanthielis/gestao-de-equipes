@@ -6,6 +6,11 @@
       <div>
         <h2 class="text-3xl font-black text-slate-900">Ações Corretivas</h2>
         <p class="text-slate-500 mt-1 text-sm">Registre e acompanhe o tratamento de Não Conformidades e Conformidades Parciais.</p>
+        <!-- Badge de escopo de visibilidade -->
+        <div v-if="!authStore.isSuperAdmin" class="mt-2 inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-lg">
+          <i class="fa-solid fa-lock text-indigo-400"></i>
+          Exibindo apenas NCs da sua equipe
+        </div>
       </div>
       <div class="flex gap-2">
         <button @click="filtroPendentes = !filtroPendentes"
